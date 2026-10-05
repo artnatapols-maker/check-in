@@ -121,9 +121,11 @@ function sendDataToDatabase(empId, time, lat, lng) {
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ empId, time, lat, lng })
-    });
+    }).then(()=>{
+        alert('บันทึกข้อมูลเข้าสูระบบสำเร็จ!);
+    }).catch(Eror!,eror.message);
+});
 }
-*/
 </script>
 
 </body>
