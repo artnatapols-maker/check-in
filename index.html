@@ -94,11 +94,11 @@ function checkIn() {
 
                 timeText.innerText = currentTime;
                 geoText.innerText = `${lat}, ${lng}`;
-                statusText.innerText = 'บันทึกสำเร็จ!';
+                statusText.innerText = 'กำลังบันทึกข้อมูล...';
                 statusText.style.color = '#4CAF50';
 
-                // --- ส่วนสำหรับการส่งข้อมูลต่อไปยัง Backend หรือ Google Sheets ---
-                // sendDataToDatabase(empId, currentTime, lat, lng);
+                // ส่งข้อมูลไปที่ Google Sheets (ปลดคอมเมนต์ออกให้แล้วทำงานจริง)
+                sendDataToDatabase(empId, currentTime, lat, lng);
             },
             (error) => {
                 statusText.innerText = 'ไม่สามารถดึงพิกัดได้ (โปรดเปิด GPS)';
@@ -113,18 +113,25 @@ function checkIn() {
     }
 }
 
-// ฟังก์ชันเสริม หากต้องการส่งข้อมูลเข้า Google Sheets (ผ่าน Google Apps Script Web App)
+// ฟังก์ชันสำหรับส่งข้อมูลเข้า Google Sheets
 function sendDataToDatabase(empId, time, lat, lng) {
     const scriptURL = 'https://script.google.com/macros/s/AKfycbwqpjJGyDVYRGsOPjro7THbT7vpb3w5WTw3dj9Vb9W56QZccosqmmmiuwCSIjybWGTUww/exec';
+    
     fetch(scriptURL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ empId, time, lat, lng })
-    }).then(()=>{
-        alert('บันทึกข้อมูลเข้าสูระบบสำเร็จ!);
-    }).catch(Eror!,eror.message);
-});
+    })
+    .then(() => {
+        statusText.innerText = 'บันทึกสำเร็จ!';
+        alert('บันทึกข้อมูลเข้าสู่ระบบสำเร็จ!');
+    })
+    .catch((error) => {
+        console.error('Error!', error);
+        statusText.innerText = 'เกิดข้อผิดพลาดในการบันทึก';
+        statusText.style.color = '#d9534f';
+    });
 }
 </script>
 
