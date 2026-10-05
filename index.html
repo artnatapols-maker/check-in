@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบลงเวลาพนักงานด้วย QR Code</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h2 { color: #333; margin-bottom: 20px; }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        .btn:hover { background-color: #45a049; }
+        .result {
+            margin-top: 20px;
+            text-align: left;
+            font-size: 14px;
+            color: #555;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+        }
+        .error { color: #d9534f; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>ลงเวลาทำงาน</h2>
+    <p>กรุณากดยืนยันเพื่อบันทึกเวลาและพิกัดของคุณ</p>
+    
+    <div style="margin-bottom: 15px;">
+        <input type="text" id="employeeId" placeholder="รหัสพนักงาน หรือ ชื่อ-นามสกุล" style="width: 90%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+    </div>
+
+    <button class="btn" onclick="checkIn()">บันทึกเวลาลงงาน</button>
+
+    <div id="resultBox" class="result">
+        <p><strong>สถานะ:</strong> <span id="statusText">กำลังดำเนินการ...</span></p>
+        <p><strong>เวลา:</strong> <span id="timeText">-</span></p>
+        <p><strong>พิกัด:</strong> <span id="geoText">-</span></p>
+    </div>
+</div>
+
+<script>
+function checkIn() {
+    const empId = document.getElementById('employeeId').value;
+    if (!empId) {
+        alert('กรุณากรอกรหัสพนักงานหรือชื่อก่อนลงเวลา');
+        return;
+    }
+
+    const resultBox = document.getElementById('resultBox');
+    const statusText = document.getElementById('statusText');
+    const timeText = document.getElementById('timeText');
+    const geoText = document.getElementById('geoText');
+
+    resultBox.style.display = 'block';
+    statusText.innerText = 'กำลังดึงพิกัด GPS...';
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const currentTime = new Date().toLocaleString('th-TH');
+
+                timeText.innerText = currentTime;
+                geoText.innerText = `${lat}, ${lng}`;
+                statusText.innerText = 'บันทึกสำเร็จ!';
+                statusText.style.color = '#4CAF50';
+
+                // --- ส่วนสำหรับการส่งข้อมูลต่อไปยัง Backend หรือ Google Sheets ---
+                // sendDataToDatabase(empId, currentTime, lat, lng);
+            },
+            (error) => {
+                statusText.innerText = 'ไม่สามารถดึงพิกัดได้ (โปรดเปิด GPS)';
+                statusText.style.color = '#d9534f';
+                console.error(error);
+            },
+            { enableHighAccuracy: true }
+        );
+    } else {
+        statusText.innerText = 'เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง';
+        statusText.style.color = '#d9534f';
+    }
+}
+
+// ฟังก์ชันเสริม หากต้องการส่งข้อมูลเข้า Google Sheets (ผ่าน Google Apps Script Web App)
+/*
+function sendDataToDatabase(empId, time, lat, lng) {
+    const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+    fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empId, time, lat, lng })
+    });
+}
+*/
+</script>
+
+</body>
+</html>
