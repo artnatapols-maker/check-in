@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบลงเวลาพนักงานด้วย QR Code</title>
+    <title>ระบบลงเวลาพนักงานด้วย QR Code + ถ่ายรูป</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -13,18 +13,27 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
         }
         .container {
             background: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 400px;
             text-align: center;
         }
-        h2 { color: #333; margin-bottom: 20px; }
+        h2 { color: #333; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { font-size: 14px; color: #555; display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
         .btn {
             background-color: #4CAF50;
             color: white;
@@ -47,20 +56,41 @@
             border-radius: 6px;
             display: none;
         }
-        .error { color: #d9534f; }
+        #previewContainer {
+            margin-top: 10px;
+            display: none;
+            text-align: center;
+        }
+        #imagePreview {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>ลงเวลาทำงาน</h2>
-    <p>กรุณากดยืนยันเพื่อบันทึกเวลาและพิกัดของคุณ</p>
+    <p>กรอกข้อมูล ถ่ายรูป และบันทึกพิกัด</p>
     
-    <div style="margin-bottom: 15px;">
-        <input type="text" id="employeeId" placeholder="รหัสพนักงาน หรือ ชื่อ-นามสกุล" style="width: 90%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+    <div class="form-group">
+        <label>รหัสพนักงานหรือชื่อ:</label>
+        <input type="text" id="employeeId" placeholder="เช่น EMP001 หรือ สมชาย">
     </div>
 
-    <button class="btn" onclick="checkIn()">บันทึกเวลาลงงาน</button>
+    <div class="form-group">
+        <label>ถ่ายรูปยืนยันตัวตน:</label>
+        <!-- capture="user" จะบังคับเปิดกล้องหน้า (ถ้าเปลี่ยนเป็น environment จะเปิดกล้องหลัง) -->
+        <input type="file" id="photoInput" accept="image/*" capture="user" onchange="previewPhoto(event)">
+    </div>
+
+    <div id="previewContainer">
+        <img id="imagePreview" alt="Preview">
+    </div>
+
+    <button class="btn" onclick="checkIn()" style="margin-top: 10px;">บันทึกเวลาลงงาน</button>
 
     <div id="resultBox" class="result">
         <p><strong>สถานะ:</strong> <span id="statusText">กำลังดำเนินการ...</span></p>
@@ -70,10 +100,30 @@
 </div>
 
 <script>
+let base64Image = "";
+
+// ฟังก์ชันแสดงตัวอย่างรูปภาพและแปลงเป็น Base64
+function previewPhoto(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            base64Image = e.target.result; // เก็บข้อมูลรูปในรูปแบบ Base64
+            document.getElementById('imagePreview').src = base64Image;
+            document.getElementById('previewContainer').style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+    }
+}
+
 function checkIn() {
     const empId = document.getElementById('employeeId').value;
     if (!empId) {
         alert('กรุณากรอกรหัสพนักงานหรือชื่อก่อนลงเวลา');
+        return;
+    }
+    if (!base64Image) {
+        alert('กรุณาถ่ายรูปยืนยันก่อนบันทึกเวลา');
         return;
     }
 
@@ -94,11 +144,11 @@ function checkIn() {
 
                 timeText.innerText = currentTime;
                 geoText.innerText = `${lat}, ${lng}`;
-                statusText.innerText = 'กำลังบันทึกข้อมูล...';
+                statusText.innerText = 'กำลังอัปโหลดข้อมูลและรูปภาพ...';
                 statusText.style.color = '#4CAF50';
 
-                // ส่งข้อมูลไปที่ Google Sheets (ปลดคอมเมนต์ออกให้แล้วทำงานจริง)
-                sendDataToDatabase(empId, currentTime, lat, lng);
+                // ส่งข้อมูลทั้งหมดไป Google Sheets
+                sendDataToDatabase(empId, currentTime, lat, lng, base64Image, statusText);
             },
             (error) => {
                 statusText.innerText = 'ไม่สามารถดึงพิกัดได้ (โปรดเปิด GPS)';
@@ -113,23 +163,22 @@ function checkIn() {
     }
 }
 
-// ฟังก์ชันสำหรับส่งข้อมูลเข้า Google Sheets
-function sendDataToDatabase(empId, time, lat, lng) {
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbxJDYiPgMGnm0pKtkNtLHlnLB37MxD6axAw1tSfv7sgqv1aPp5tKftSc-tIDQkRx3Jbvg/exec';
+function sendDataToDatabase(empId, time, lat, lng, imageStr, statusText) {
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbxJDYiPgMGnm0pKtkNtLHlnLB37MxD6axAw1tSfv7sgqv1aPp5tKftSc-tIDQkRx3Jbvg/exec'; // <--- ใส่ลิงก์ Web App ของคุณตรงนี้
     
     fetch(scriptURL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ empId, time, lat, lng })
+        body: JSON.stringify({ empId, time, lat, lng, image: imageStr })
     })
     .then(() => {
         statusText.innerText = 'บันทึกสำเร็จ!';
-        alert('บันทึกข้อมูลเข้าสู่ระบบสำเร็จ!');
+        alert('บันทึกเวลาและส่งรูปภาพสำเร็จเรียบร้อย!');
     })
     .catch((error) => {
         console.error('Error!', error);
-        statusText.innerText = 'เกิดข้อผิดพลาดในการบันทึก';
+        statusText.innerText = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
         statusText.style.color = '#d9534f';
     });
 }
