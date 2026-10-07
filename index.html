@@ -201,7 +201,7 @@ function checkIn() {
 }
 
 function sendDataToDatabase(empId, time, lat, lng, imageStr, statusText) {
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbyCw3UW8uDLZHLT2zqFAc8MIAsV_oa9mNJqgU-PV51W8KjJoBbZMP54XuFI2rkYtxLejw/exec'; // <--- ใส่ลิงก์ Web App ของคุณ
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyCw3UW8uDLZHLT2zqFAc8MIAsV_oa9mNJqgU-PV51W8KjJoBbZMP54XuFI2rkYtxLejw/exec';// <--- ใส่ลิงก์ Web App ของคุณ
     
     fetch(scriptURL, {
         method: 'POST',
